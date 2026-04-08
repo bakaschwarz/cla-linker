@@ -24,7 +24,6 @@ export async function walkFiles(dirPath) {
   const entries = await readdir(dirPath, { withFileTypes: true, recursive: true });
   return entries
     .filter(e => !e.isDirectory() && !e.isSymbolicLink())
-    .map(e => path.relative(dirPath, path.join(e.path, e.name)));
-  // e.path is the containing directory (Dirent property, Node 20+)
-  // Using e.path (not e.parentPath) for Node 20.12.0 compatibility
+    .map(e => path.relative(dirPath, path.join(e.parentPath ?? e.path, e.name)));
+  // e.parentPath added in Node 21.4 (e.path deprecated); fallback for Node 20.12
 }
