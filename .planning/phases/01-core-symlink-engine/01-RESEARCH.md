@@ -523,17 +523,11 @@ All runtime dependencies are npm packages. All filesystem operations use Node.js
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **conf vs plain fs for `~/.clawd-linker`**
-   - What we know: `conf` writes to OS config dir by default; `~/.clawd-linker` is a specific file path
-   - What's unclear: Whether configuring `conf` with `cwd: os.homedir()` and `configName: '.clawd-linker'` produces exactly `~/.clawd-linker` or `~/.clawd-linker/config.json`
-   - Recommendation: Verify the conf API before the config.js task. If conf can't produce the exact filename, use plain fs + atomic write (2 lines). Do not let this block planning — both paths are well-understood.
+1. **conf vs plain fs for `~/.clawd-linker`** — RESOLVED: Use plain fs + atomic write (tmp+rename). `conf` cannot write to an exact file path like `~/.clawd-linker` without writing a directory; it defaults to OS config dirs. Plan 01-01 Task 3 uses plain `fs` with atomic write pattern instead. `conf` is installed but not used for global config.
 
-2. **`Dirent.path` vs `Dirent.parentPath` in Node 20.12.0**
-   - What we know: `parentPath` was added as an alias in Node 20.13 / 21.4; `path` existed earlier
-   - What's unclear: Exact Node 20.12.0 behavior for `Dirent.path` in recursive `readdir` mode
-   - Recommendation: Check Node 20.x changelog or test with `node --version` at runtime. Add a comment in the walker code. Fallback: construct path from `e.name` and a manual stack.
+2. **`Dirent.path` vs `Dirent.parentPath` in Node 20.12.0** — RESOLVED: Use `e.path` (not `e.parentPath`). `parentPath` was added as alias in Node 20.13/21.4; `path` is the correct property for Node 20.12.0 compatibility. Plan 01-01 Task 2 uses `e.path` with an inline comment explaining this.
 
 ---
 
