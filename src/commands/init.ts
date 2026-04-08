@@ -1,20 +1,15 @@
+import { readFile, mkdir, access } from 'fs/promises';
 import path from 'path';
 import chalk from 'chalk';
-import simpleGit from 'simple-git';
-import { input, confirm } from '@inquirer/prompts';
-import { mkdir, access, readFile } from '../utils/fs.js';
-import { CONFIG_PATH, getRepoPath, setRepoPath } from '../config.js';
+import { input } from '@inquirer/prompts';
+import { simpleGit } from 'simple-git';
+import { CONFIG_PATH, setRepoPath } from '../config.js';
 
-/**
- * `clawd-linker init` command handler.
- * Creates a git-initialized package repository and stores its path in ~/.clawd-linker.
- * If config already exists and points to a valid repo, warns and exits (INIT-02).
- */
-export async function initCommand() {
+export async function initCommand(): Promise<void> {
   // INIT-02: Check if config already exists and is valid
   try {
     const content = await readFile(CONFIG_PATH, 'utf8');
-    const config = JSON.parse(content);
+    const config = JSON.parse(content) as { repoPath?: string };
     if (config.repoPath) {
       try {
         await access(config.repoPath);
@@ -33,7 +28,7 @@ export async function initCommand() {
   // INIT-01: Ask for repo path
   const repoPath = await input({
     message: 'Where should the package repository be created?',
-    default: path.join(process.env.HOME || process.env.USERPROFILE || '', 'clawd-packages'),
+    default: path.join(process.env['HOME'] ?? process.env['USERPROFILE'] ?? '', 'clawd-packages'),
   });
 
   const resolved = path.resolve(repoPath);

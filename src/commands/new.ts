@@ -1,18 +1,9 @@
+import { mkdir, writeFile, access } from 'fs/promises';
 import path from 'path';
 import chalk from 'chalk';
-import { mkdir, writeFile, access } from '../utils/fs.js';
 import { getRepoPath } from '../config.js';
 
-/**
- * `clawd-linker new <name>` command handler.
- * Scaffolds a new package in the repository with:
- * - <name>/files/          (directory for symlinked files)
- * - <name>/PACKAGE.md      (package documentation)
- * - <name>/data.json       (state tracking — gitignored)
- * - <name>/.gitignore      (gitignores data.json — PKG-02)
- * @param {string} name - Package name from CLI argument
- */
-export async function newCommand(name) {
+export async function newCommand(name: string): Promise<void> {
   if (!name) {
     console.error(chalk.red('Package name is required. Usage: clawd-linker new <name>'));
     process.exit(1);

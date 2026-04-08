@@ -1,17 +1,12 @@
+import { readFile, writeFile, rename, lstat, readlink } from 'fs/promises';
 import path from 'path';
 import chalk from 'chalk';
-import { readFile, writeFile, rename, lstat, readlink } from '../utils/fs.js';
+import type { Package, PackageState, ReconcileResult } from '../types.js';
 
-/**
- * Read the state from a package's data.json.
- * Returns empty state on missing/corrupt file (Pitfall 4 resilience).
- * @param {string} dataJsonPath - Absolute path to data.json
- * @returns {Promise<{schemaVersion: number, installedIn: Object.<string, string[]>}>}
- */
-export async function readState(dataJsonPath) {
+async function readState(dataJsonPath: string): Promise<PackageState> {
   try {
     const raw = await readFile(dataJsonPath, 'utf8');
-    const parsed = JSON.parse(raw);
+    const parsed = JSON.parse(raw) as PackageState;
     // Validate minimum shape
     if (!parsed.installedIn || typeof parsed.installedIn !== 'object') {
       return { schemaVersion: 1, installedIn: {} };
@@ -27,27 +22,14 @@ export async function readState(dataJsonPath) {
   }
 }
 
-/**
- * Write state to data.json using atomic write pattern (tmp + rename).
- * Prevents truncated JSON on crash (Pitfall 4).
- * @param {string} dataJsonPath - Absolute path to data.json
- * @param {Object} state - State object to write
- */
-export async function writeState(dataJsonPath, state) {
+async function writeState(dataJsonPath: string, state: PackageState): Promise<void> {
   const tmp = dataJsonPath + '.tmp';
   await writeFile(tmp, JSON.stringify(state, null, 2), 'utf8');
   await rename(tmp, dataJsonPath);
 }
 
-/**
- * Get the set of package names installed in a given project.
- * Reads data.json for each package and checks if projectPath has entries.
- * @param {string} projectPath - Absolute path to the project
- * @param {Array<{name: string, dataJsonPath: string}>} packages - Package descriptors
- * @returns {Promise<Set<string>>} Set of installed package names
- */
-export async function getInstalledPackages(projectPath, packages) {
-  const installed = new Set();
+export async function getInstalledPackages(projectPath: string, packages: Package[]): Promise<Set<string>> {
+  const installed = new Set<string>();
   for (const pkg of packages) {
     const state = await readState(pkg.dataJsonPath);
     const projectLinks = state.installedIn[projectPath];
@@ -58,16 +40,7 @@ export async function getInstalledPackages(projectPath, packages) {
   return installed;
 }
 
-/**
- * Cross-validate data.json entries for a project against the live filesystem.
- * Prunes entries where the symlink is missing, points to wrong target, or is
- * not a symlink. Only writes data.json if changes were made (Pitfall 5).
- *
- * @param {import('./package-registry.js').PackageDescriptor} pkg
- * @param {string} projectPath - Absolute path to the project
- * @returns {Promise<{pruned: number}>} Number of entries pruned
- */
-export async function reconcileLinks(pkg, projectPath) {
+export async function reconcileLinks(pkg: Package, projectPath: string): Promise<ReconcileResult> {
   const state = await readState(pkg.dataJsonPath);
   const recordedLinks = state.installedIn[projectPath];
 
@@ -75,7 +48,7 @@ export async function reconcileLinks(pkg, projectPath) {
     return { pruned: 0 };
   }
 
-  const verified = [];
+  const verified: string[] = [];
   let changed = false;
 
   for (const linkPath of recordedLinks) {
@@ -125,3 +98,5 @@ export async function reconcileLinks(pkg, projectPath) {
 
   return { pruned: recordedLinks.length - verified.length };
 }
+
+export { readState, writeState };

@@ -4,12 +4,14 @@
   "description": "Manage reusable file packages across projects via symlinks",
   "type": "module",
   "bin": {
-    "clawd-linker": "./bin/clawd-linker.js"
+    "clawd-linker": "./dist/bin/clawd-linker.js"
   },
   "engines": {
-    "node": ">=20.12.0"
+    "node": ">=20.13.0"
   },
   "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
     "test": "vitest run"
   },
   "keywords": [
@@ -26,6 +28,8 @@
     "simple-git": "^3.35.2"
   },
   "devDependencies": {
+    "@types/node": "^25.5.2",
+    "typescript": "^6.0.2",
     "vitest": "^4.1.3"
   }
 }

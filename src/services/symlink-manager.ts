@@ -1,25 +1,18 @@
+import { mkdir, lstat, readlink, unlink, symlink, rename, readdir, rmdir } from 'fs/promises';
 import path from 'path';
 import chalk from 'chalk';
-import { walkFiles, symlink, unlink, lstat, readlink, mkdir, rename, rmdir, readdir } from '../utils/fs.js';
+import { walkFiles } from '../utils/fs.js';
 import { readState, writeState } from './package-state.js';
+import type { Package, ConflictCallback, InstallOptions } from '../types.js';
 
-/**
- * Install a package into a project by creating per-file symlinks.
- * - Walks pkg.filesPath recursively (LINK-01)
- * - Uses absolute paths for both source and target (LINK-02)
- * - Creates parent directories as needed (LINK-03)
- * - Detects conflicts with existing real files (LINK-05)
- * - Skips already-correct symlinks for idempotency (STATE-03)
- *
- * @param {import('./package-registry.js').PackageDescriptor} pkg - Package to install
- * @param {string} projectPath - Absolute path to project root
- * @param {function(string): Promise<'skip'|'overwrite'>} conflictCallback - Called per conflict
- * @param {{ dryRun?: boolean }} [options]
- * @returns {Promise<string[]>} Array of absolute symlink target paths that were created or already existed
- */
-export async function installPackage(pkg, projectPath, conflictCallback, { dryRun = false } = {}) {
+export async function installPackage(
+  pkg: Package,
+  projectPath: string,
+  conflictCallback: ConflictCallback,
+  { dryRun = false }: InstallOptions = {}
+): Promise<string[]> {
   const files = await walkFiles(pkg.filesPath);
-  const ownedLinks = [];
+  const ownedLinks: string[] = [];
 
   for (const relPath of files) {
     const source = path.resolve(pkg.filesPath, relPath);   // absolute — LINK-02
@@ -76,7 +69,7 @@ export async function installPackage(pkg, projectPath, conflictCallback, { dryRu
     // WR-04: merge with previously recorded links so stale paths (source file deleted)
     // are retained and can be cleaned up by uninstallPackage rather than leaking.
     const state = await readState(pkg.dataJsonPath);
-    const previousLinks = state.installedIn[projectPath] || [];
+    const previousLinks = state.installedIn[projectPath] ?? [];
     const currentSet = new Set(ownedLinks);
     const merged = [...ownedLinks, ...previousLinks.filter(p => !currentSet.has(p))];
     state.installedIn[projectPath] = merged;
@@ -86,20 +79,14 @@ export async function installPackage(pkg, projectPath, conflictCallback, { dryRu
   return ownedLinks;
 }
 
-/**
- * Uninstall a package from a project by removing exactly the owned symlinks.
- * Only removes paths recorded in data.json for this project (LINK-04).
- * Verifies each path is still a symlink before removing (defensive).
- *
- * @param {import('./package-registry.js').PackageDescriptor} pkg - Package to uninstall
- * @param {string} projectPath - Absolute path to project root
- * @param {{ dryRun?: boolean }} [options]
- * @returns {Promise<string[]>} Array of absolute paths that were removed
- */
-export async function uninstallPackage(pkg, projectPath, { dryRun = false } = {}) {
+export async function uninstallPackage(
+  pkg: Package,
+  projectPath: string,
+  { dryRun = false }: InstallOptions = {}
+): Promise<string[]> {
   const state = await readState(pkg.dataJsonPath);
-  const ownedLinks = state.installedIn[projectPath] || [];
-  const removed = [];
+  const ownedLinks = state.installedIn[projectPath] ?? [];
+  const removed: string[] = [];
 
   for (const linkPath of ownedLinks) {
     const stat = await lstat(linkPath).catch(() => null);
@@ -123,17 +110,8 @@ export async function uninstallPackage(pkg, projectPath, { dryRun = false } = {}
   return removed;
 }
 
-/**
- * Remove empty directories that were left behind after uninstalling symlinks.
- * Traverses parent dirs of removed paths up to (but not including) projectPath,
- * sorted deepest-first, removing only empty ones.
- *
- * @param {string[]} removedPaths - Absolute paths of removed symlinks
- * @param {string} projectPath - Absolute path to project root (upper bound)
- * @returns {Promise<void>}
- */
-export async function cleanEmptyDirs(removedPaths, projectPath) {
-  const dirs = new Set();
+export async function cleanEmptyDirs(removedPaths: string[], projectPath: string): Promise<void> {
+  const dirs = new Set<string>();
   // Append separator so sibling dirs (e.g. /proj-backup) are not matched as sub-paths
   const projectRoot = projectPath.endsWith(path.sep) ? projectPath : projectPath + path.sep;
   for (const p of removedPaths) {

@@ -5,19 +5,11 @@ import { getRepoPath } from '../config.js';
 import { listPackages } from '../services/package-registry.js';
 import { getInstalledPackages, reconcileLinks } from '../services/package-state.js';
 import { installPackage, uninstallPackage, cleanEmptyDirs } from '../services/symlink-manager.js';
+import type { ManageOptions, ConflictCallback } from '../types.js';
 
-/**
- * `clawd-linker manage` (alias `m`) command handler.
- * Opens interactive checkbox list of all packages, pre-checks installed ones,
- * then installs/uninstalls based on diff between current and selected state.
- *
- * @param {object} options - Commander options
- * @param {boolean} [options.dryRun] - Preview changes without filesystem modifications
- * @param {boolean} [options.yes] - Skip interactive prompts (headless mode)
- */
-export async function manageCommand(options) {
-  const dryRun = options.dryRun || false;
-  const isHeadless = options.yes || !process.stdin.isTTY;
+export async function manageCommand(options: ManageOptions): Promise<void> {
+  const dryRun = options.dryRun ?? false;
+  const isHeadless = options.yes ?? !process.stdin.isTTY;
 
   const repoPath = await getRepoPath(); // Exits if not configured (CFG-02)
   const projectPath = path.resolve(process.cwd());
@@ -92,7 +84,7 @@ export async function manageCommand(options) {
   }
 
   // LINK-05: Conflict callback for install — prompts per-conflict
-  const conflictCallback = async (targetPath) => {
+  const conflictCallback: ConflictCallback = async (targetPath) => {
     const relPath = path.relative(projectPath, targetPath);
     const overwrite = await inquirerConfirm({
       message: `File already exists: ${relPath}. Overwrite? (original backed up to .clawd-backup)`,
@@ -102,27 +94,27 @@ export async function manageCommand(options) {
   };
 
   // Execute installs — WR-02: accumulate errors rather than letting them propagate
-  const errors = [];
+  const errors: Array<{ pkg: string; err: Error }> = [];
   for (const pkg of toInstall) {
     try {
       const links = await installPackage(pkg, projectPath, conflictCallback, { dryRun });
       console.log(chalk.green(`  Installed ${pkg.name} (${links.length} files)`));
     } catch (err) {
-      errors.push({ pkg: pkg.name, err });
-      console.log(chalk.red(`  Failed to install ${pkg.name}: ${err.message}`));
+      errors.push({ pkg: pkg.name, err: err as Error });
+      console.log(chalk.red(`  Failed to install ${pkg.name}: ${(err as Error).message}`));
     }
   }
 
   // Execute uninstalls
-  const allRemoved = [];
+  const allRemoved: string[] = [];
   for (const pkg of toUninstall) {
     try {
       const removed = await uninstallPackage(pkg, projectPath, { dryRun });
       allRemoved.push(...removed);
       console.log(chalk.red(`  Uninstalled ${pkg.name} (${removed.length} files removed)`));
     } catch (err) {
-      errors.push({ pkg: pkg.name, err });
-      console.log(chalk.red(`  Failed to uninstall ${pkg.name}: ${err.message}`));
+      errors.push({ pkg: pkg.name, err: err as Error });
+      console.log(chalk.red(`  Failed to uninstall ${pkg.name}: ${(err as Error).message}`));
     }
   }
 

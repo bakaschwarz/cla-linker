@@ -1,24 +1,10 @@
+import { readdir, lstat } from 'fs/promises';
 import path from 'path';
-import { readdir, lstat } from '../utils/fs.js';
+import type { Package } from '../types.js';
 
-/**
- * @typedef {Object} PackageDescriptor
- * @property {string} name - Package name (directory name)
- * @property {string} path - Absolute path to package root
- * @property {string} filesPath - Absolute path to package's files/ directory
- * @property {string} dataJsonPath - Absolute path to package's data.json
- */
-
-/**
- * List all valid packages in the repository.
- * A valid package is a directory containing a `files/` subdirectory.
- * Skips directories without files/ (with no error — they may be non-package dirs).
- * @param {string} repoPath - Absolute path to the package repository
- * @returns {Promise<PackageDescriptor[]>} Array of package descriptors sorted by name
- */
-export async function listPackages(repoPath) {
+export async function listPackages(repoPath: string): Promise<Package[]> {
   const entries = await readdir(repoPath, { withFileTypes: true });
-  const packages = [];
+  const packages: Package[] = [];
 
   for (const entry of entries) {
     if (!entry.isDirectory() || entry.name.startsWith('.')) continue;

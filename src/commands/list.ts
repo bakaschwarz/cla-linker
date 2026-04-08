@@ -4,11 +4,7 @@ import { getRepoPath } from '../config.js';
 import { listPackages } from '../services/package-registry.js';
 import { getInstalledPackages } from '../services/package-state.js';
 
-/**
- * `clawd-linker list` command handler.
- * Shows installed packages for the current project without opening the TUI.
- */
-export async function listCommand() {
+export async function listCommand(): Promise<void> {
   const repoPath = await getRepoPath();
   const projectPath = path.resolve(process.cwd());
   const packages = await listPackages(repoPath);

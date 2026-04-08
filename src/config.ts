@@ -1,22 +1,20 @@
+import { readFile, writeFile, rename, lstat } from 'fs/promises';
 import path from 'path';
 import os from 'os';
 import chalk from 'chalk';
-import { readFile, writeFile, rename, lstat } from './utils/fs.js';
 
 export const CONFIG_PATH = path.join(os.homedir(), '.clawd-linker');
 
-/**
- * Read the repo path from ~/.clawd-linker. Exits process with error if:
- * - Config file does not exist (CFG-02)
- * - Config file is not valid JSON (CFG-02)
- * - Configured repo path does not exist on disk (CFG-02)
- * @returns {Promise<string>} Absolute path to the package repository
- */
-export async function getRepoPath() {
-  let raw;
+interface RawConfig {
+  schemaVersion?: number;
+  repoPath?: unknown;
+}
+
+export async function getRepoPath(): Promise<string> {
+  let raw: RawConfig;
   try {
     const content = await readFile(CONFIG_PATH, 'utf8');
-    raw = JSON.parse(content);
+    raw = JSON.parse(content) as RawConfig;
   } catch {
     console.error(chalk.red('No package repository configured. Run `clawd-linker init` first.'));
     process.exit(1);
@@ -33,25 +31,23 @@ export async function getRepoPath() {
     process.exit(1);
   }
 
+  const repoPath = raw.repoPath;
+
   // WR-03: access() succeeds on regular files too — use lstat + isDirectory()
   try {
-    const st = await lstat(raw.repoPath);
+    const st = await lstat(repoPath);
     if (!st.isDirectory()) {
       throw new Error('not a directory');
     }
   } catch {
-    console.error(chalk.red(`Package repo not found at ${raw.repoPath}. Run \`clawd-linker init\` to reconfigure.`));
+    console.error(chalk.red(`Package repo not found at ${repoPath}. Run \`clawd-linker init\` to reconfigure.`));
     process.exit(1);
   }
 
-  return raw.repoPath;
+  return repoPath;
 }
 
-/**
- * Write the repo path to ~/.clawd-linker using atomic write (tmp + rename).
- * @param {string} repoPath - Absolute path to the package repository
- */
-export async function setRepoPath(repoPath) {
+export async function setRepoPath(repoPath: string): Promise<void> {
   const resolved = path.resolve(repoPath);
   const data = JSON.stringify({ schemaVersion: 1, repoPath: resolved }, null, 2);
   const tmp = CONFIG_PATH + '.tmp';
