@@ -14,7 +14,7 @@ export async function initCommand(): Promise<void> {
       try {
         await access(config.repoPath);
         console.log(chalk.yellow(`Package repository already configured at: ${config.repoPath}`));
-        console.log(chalk.yellow('To reconfigure, delete ~/.clawd-linker and run init again.'));
+        console.log(chalk.yellow('To reconfigure, delete ~/.cla-linker and run init again.'));
         return;
       } catch {
         // Config exists but repo path invalid — allow re-init
@@ -44,5 +44,5 @@ export async function initCommand(): Promise<void> {
   console.log(chalk.green(`Package repository created at: ${resolved}`));
   console.log(chalk.green(`Config saved to: ${CONFIG_PATH}`));
   console.log('');
-  console.log(`Next: run ${chalk.cyan('clawd-linker new <package-name>')} to create your first package.`);
+  console.log(`Next: run ${chalk.cyan('cla-linker new <package-name>')} to create your first package.`);
 }

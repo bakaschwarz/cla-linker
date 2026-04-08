@@ -5,7 +5,7 @@ import { getRepoPath } from '../config.js';
 
 export async function newCommand(name: string): Promise<void> {
   if (!name) {
-    console.error(chalk.red('Package name is required. Usage: clawd-linker new <name>'));
+    console.error(chalk.red('Package name is required. Usage: cla-linker new <name>'));
     process.exit(1);
   }
 
@@ -57,5 +57,5 @@ export async function newCommand(name: string): Promise<void> {
 
   console.log(chalk.green(`Package "${name}" created at: ${pkgPath}`));
   console.log('');
-  console.log(`Add files to ${chalk.cyan(filesPath)} then run ${chalk.cyan('clawd-linker manage')} in a project.`);
+  console.log(`Add files to ${chalk.cyan(filesPath)} then run ${chalk.cyan('cla-linker manage')} in a project.`);
 }

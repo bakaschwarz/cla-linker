@@ -1,4 +1,4 @@
-# clawd-linker
+<img src=".github/logo.svg" alt="cla(-lin)ker" />
 
 Pull your skills, agents, rules, docs, etc. from a central repository and link them as packages into your projects as symlinks.
 
@@ -9,7 +9,7 @@ Pull your skills, agents, rules, docs, etc. from a central repository and link t
 ## Usage
 
 ```bash
-npx clawd-linker <command>
+npx cla-linker <command>
 ```
 
 ## Commands
@@ -19,17 +19,17 @@ npx clawd-linker <command>
 Set up your central package repository (run once).
 
 ```bash
-npx clawd-linker init
+npx cla-linker init
 ```
 
-Prompts for a directory path, creates it, runs `git init`, and saves the path to `~/.clawd-linker`.
+Prompts for a directory path, creates it, runs `git init`, and saves the path to `~/.cla-linker`.
 
 ### `new <name>`
 
 Create a new package in the repository.
 
 ```bash
-npx clawd-linker new my-package
+npx cla-linker new my-package
 ```
 
 Scaffolds `<repo>/<name>/` with:
@@ -42,7 +42,7 @@ Scaffolds `<repo>/<name>/` with:
 Install or uninstall packages in the current project.
 
 ```bash
-npx clawd-linker manage
+npx cla-linker manage
 ```
 
 Opens a checkbox list of all packages. Toggle with Space, confirm with Enter. Already-installed packages are pre-checked. After selection, shows a diff (install/uninstall) and asks for confirmation before applying.
@@ -51,4 +51,4 @@ Opens a checkbox list of all packages. Toggle with Space, confirm with Enter. Al
 
 ## Config
 
-Global config is stored at `~/.clawd-linker`. Delete this file to reconfigure.
+Global config is stored at `~/.cla-linker`. Delete this file to reconfigure.

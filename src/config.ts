@@ -3,7 +3,7 @@ import path from 'path';
 import os from 'os';
 import chalk from 'chalk';
 
-export const CONFIG_PATH = path.join(os.homedir(), '.clawd-linker');
+export const CONFIG_PATH = path.join(os.homedir(), '.cla-linker');
 
 interface RawConfig {
   schemaVersion?: number;
@@ -16,7 +16,7 @@ export async function getRepoPath(configPath = CONFIG_PATH): Promise<string> {
     const content = await readFile(configPath, 'utf8');
     raw = JSON.parse(content) as RawConfig;
   } catch {
-    console.error(chalk.red('No package repository configured. Run `clawd-linker init` first.'));
+    console.error(chalk.red('No package repository configured. Run `cla-linker init` first.'));
     process.exit(1);
   }
 
@@ -27,7 +27,7 @@ export async function getRepoPath(configPath = CONFIG_PATH): Promise<string> {
   }
 
   if (!raw.repoPath || typeof raw.repoPath !== 'string') {
-    console.error(chalk.red('Config file is missing repoPath. Run `clawd-linker init` to reconfigure.'));
+    console.error(chalk.red('Config file is missing repoPath. Run `cla-linker init` to reconfigure.'));
     process.exit(1);
   }
 
@@ -40,7 +40,7 @@ export async function getRepoPath(configPath = CONFIG_PATH): Promise<string> {
       throw new Error('not a directory');
     }
   } catch {
-    console.error(chalk.red(`Package repo not found at ${repoPath}. Run \`clawd-linker init\` to reconfigure.`));
+    console.error(chalk.red(`Package repo not found at ${repoPath}. Run \`cla-linker init\` to reconfigure.`));
     process.exit(1);
   }
 

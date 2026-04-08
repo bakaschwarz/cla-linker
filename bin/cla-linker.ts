@@ -8,7 +8,7 @@ import { listCommand } from '../src/commands/list.js';
 import packageJson from '../package.json' with { type: 'json' };
 
 program
-  .name('clawd-linker')
+  .name('cla-linker')
   .description('Manage reusable file packages across projects via symlinks')
   .version(packageJson.version);
 

@@ -17,7 +17,7 @@ export async function manageCommand(options: ManageOptions): Promise<void> {
 
   if (packages.length === 0) {
     console.log(chalk.yellow('No packages found in the repository.'));
-    console.log(`Create one with: ${chalk.cyan('clawd-linker new <name>')}`);
+    console.log(`Create one with: ${chalk.cyan('cla-linker new <name>')}`);
     return;
   }
 

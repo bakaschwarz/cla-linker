@@ -1,10 +1,10 @@
 {
-  "name": "clawd-linker",
+  "name": "cla-linker",
   "version": "1.0.0",
   "description": "Manage reusable file packages across projects via symlinks",
   "type": "module",
   "bin": {
-    "clawd-linker": "./dist/bin/clawd-linker.js"
+    "cla-linker": "./dist/bin/cla-linker.js"
   },
   "engines": {
     "node": ">=20.13.0"
