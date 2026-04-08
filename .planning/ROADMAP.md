@@ -28,7 +28,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. User can run `npx clawd-linker manage` from a project directory, see all packages with installed ones pre-checked, confirm a selection, and have the correct symlinks created or removed
   4. Symlinks are created per-file (not per-directory), use absolute paths, create parent directories as needed, and are removed cleanly on uninstall
   5. Running `manage` twice with the same selection is a no-op; when a real file exists at a symlink target the user is prompted per-conflict to skip or overwrite
-**Plans**: TBD
+**Plans:** 4 plans
+Plans:
+- [ ] 01-01-PLAN.md — Project scaffold, fs-utils boundary module, and global config
+- [ ] 01-02-PLAN.md — Core services: package-registry, package-state, symlink-manager
+- [ ] 01-03-PLAN.md — CLI commands (init, new, manage) and commander wiring
+- [ ] 01-04-PLAN.md — End-to-end verification checkpoint
 
 ### Phase 2: Robustness + Polish
 **Goal**: The tool handles edge cases gracefully, supports scripted use, and cleans up after itself
@@ -59,6 +64,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Core Symlink Engine | 0/? | Not started | - |
+| 1. Core Symlink Engine | 0/4 | Planned | - |
 | 2. Robustness + Polish | 0/? | Not started | - |
 | 3. Testing + Distribution | 0/? | Not started | - |
