@@ -24,6 +24,8 @@ program
   .command('manage')
   .alias('m')
   .description('Manage installed packages for this project')
+  .option('--dry-run', 'Preview changes without making any filesystem changes')
+  .option('-y, --yes', 'Skip confirmation prompts (headless/scripted use)')
   .action(manageCommand);
 
 program.parse();

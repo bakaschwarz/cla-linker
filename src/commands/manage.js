@@ -4,14 +4,21 @@ import { checkbox, confirm as inquirerConfirm } from '@inquirer/prompts';
 import { getRepoPath } from '../config.js';
 import { listPackages } from '../services/package-registry.js';
 import { getInstalledPackages } from '../services/package-state.js';
-import { installPackage, uninstallPackage } from '../services/symlink-manager.js';
+import { installPackage, uninstallPackage, cleanEmptyDirs } from '../services/symlink-manager.js';
 
 /**
  * `clawd-linker manage` (alias `m`) command handler.
  * Opens interactive checkbox list of all packages, pre-checks installed ones,
  * then installs/uninstalls based on diff between current and selected state.
+ *
+ * @param {object} options - Commander options
+ * @param {boolean} [options.dryRun] - Preview changes without filesystem modifications
+ * @param {boolean} [options.yes] - Skip interactive prompts (headless mode)
  */
-export async function manageCommand() {
+export async function manageCommand(options) {
+  const dryRun = options.dryRun || false;
+  const isHeadless = options.yes || !process.stdin.isTTY;
+
   const repoPath = await getRepoPath(); // Exits if not configured (CFG-02)
   const projectPath = path.resolve(process.cwd());
   const packages = await listPackages(repoPath);
@@ -22,8 +29,19 @@ export async function manageCommand() {
     return;
   }
 
+  if (dryRun) {
+    console.log(chalk.cyan('\n[dry-run] Previewing changes — no files will be modified.\n'));
+  }
+
   // MGR-02: Determine which packages are currently installed
   const installed = await getInstalledPackages(projectPath, packages);
+
+  // UX-02: Headless mode guard — exit before any interactive prompt
+  if (isHeadless) {
+    console.log(chalk.yellow('Running in headless mode — no interactive prompts available.'));
+    console.log(chalk.yellow('Current selection unchanged. Use manage interactively to change packages.'));
+    return;
+  }
 
   // MGR-01: Show checkbox list with pre-checked installed packages
   const selected = await checkbox({
@@ -55,10 +73,12 @@ export async function manageCommand() {
     console.log(chalk.red(`Will uninstall: ${toUninstall.map(p => p.name).join(', ')}`));
   }
 
-  const proceed = await inquirerConfirm({ message: 'Proceed?', default: true });
-  if (!proceed) {
-    console.log('Cancelled.');
-    return;
+  if (!dryRun) {
+    const proceed = await inquirerConfirm({ message: 'Proceed?', default: true });
+    if (!proceed) {
+      console.log('Cancelled.');
+      return;
+    }
   }
 
   // LINK-05: Conflict callback for install — prompts per-conflict
@@ -75,7 +95,7 @@ export async function manageCommand() {
   const errors = [];
   for (const pkg of toInstall) {
     try {
-      const links = await installPackage(pkg, projectPath, conflictCallback);
+      const links = await installPackage(pkg, projectPath, conflictCallback, { dryRun });
       console.log(chalk.green(`  Installed ${pkg.name} (${links.length} files)`));
     } catch (err) {
       errors.push({ pkg: pkg.name, err });
@@ -84,14 +104,21 @@ export async function manageCommand() {
   }
 
   // Execute uninstalls
+  const allRemoved = [];
   for (const pkg of toUninstall) {
     try {
-      const removed = await uninstallPackage(pkg, projectPath);
+      const removed = await uninstallPackage(pkg, projectPath, { dryRun });
+      allRemoved.push(...removed);
       console.log(chalk.red(`  Uninstalled ${pkg.name} (${removed.length} files removed)`));
     } catch (err) {
       errors.push({ pkg: pkg.name, err });
       console.log(chalk.red(`  Failed to uninstall ${pkg.name}: ${err.message}`));
     }
+  }
+
+  // ROB-02: Clean empty directories after all uninstalls
+  if (!dryRun && allRemoved.length > 0) {
+    await cleanEmptyDirs(allRemoved, projectPath);
   }
 
   if (errors.length > 0) {
