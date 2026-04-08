@@ -68,33 +68,31 @@
 
 ## Traceability
 
-*(Updated during roadmap creation)*
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INIT-01 | — | Pending |
-| INIT-02 | — | Pending |
-| PKG-01 | — | Pending |
-| PKG-02 | — | Pending |
-| MGR-01 | — | Pending |
-| MGR-02 | — | Pending |
-| MGR-03 | — | Pending |
-| LINK-01 | — | Pending |
-| LINK-02 | — | Pending |
-| LINK-03 | — | Pending |
-| LINK-04 | — | Pending |
-| LINK-05 | — | Pending |
-| STATE-01 | — | Pending |
-| STATE-02 | — | Pending |
-| STATE-03 | — | Pending |
-| CFG-01 | — | Pending |
-| CFG-02 | — | Pending |
+| INIT-01 | Phase 1 | Pending |
+| INIT-02 | Phase 1 | Pending |
+| PKG-01 | Phase 1 | Pending |
+| PKG-02 | Phase 1 | Pending |
+| MGR-01 | Phase 1 | Pending |
+| MGR-02 | Phase 1 | Pending |
+| MGR-03 | Phase 1 | Pending |
+| LINK-01 | Phase 1 | Pending |
+| LINK-02 | Phase 1 | Pending |
+| LINK-03 | Phase 1 | Pending |
+| LINK-04 | Phase 1 | Pending |
+| LINK-05 | Phase 1 | Pending |
+| STATE-01 | Phase 1 | Pending |
+| STATE-02 | Phase 1 | Pending |
+| STATE-03 | Phase 1 | Pending |
+| CFG-01 | Phase 1 | Pending |
+| CFG-02 | Phase 1 | Pending |
 
 **Coverage:**
 - v1 requirements: 17 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 17 ⚠️
+- Mapped to phases: 17/17 (Phase 1)
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-04-08*
-*Last updated: 2026-04-08 after initial definition*
+*Last updated: 2026-04-08 after roadmap creation*
