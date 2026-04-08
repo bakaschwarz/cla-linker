@@ -71,17 +71,32 @@ export async function manageCommand() {
     return overwrite ? 'overwrite' : 'skip';
   };
 
-  // Execute installs
+  // Execute installs — WR-02: accumulate errors rather than letting them propagate
+  const errors = [];
   for (const pkg of toInstall) {
-    const links = await installPackage(pkg, projectPath, conflictCallback);
-    console.log(chalk.green(`  Installed ${pkg.name} (${links.length} files)`));
+    try {
+      const links = await installPackage(pkg, projectPath, conflictCallback);
+      console.log(chalk.green(`  Installed ${pkg.name} (${links.length} files)`));
+    } catch (err) {
+      errors.push({ pkg: pkg.name, err });
+      console.log(chalk.red(`  Failed to install ${pkg.name}: ${err.message}`));
+    }
   }
 
   // Execute uninstalls
   for (const pkg of toUninstall) {
-    const removed = await uninstallPackage(pkg, projectPath);
-    console.log(chalk.red(`  Uninstalled ${pkg.name} (${removed.length} files removed)`));
+    try {
+      const removed = await uninstallPackage(pkg, projectPath);
+      console.log(chalk.red(`  Uninstalled ${pkg.name} (${removed.length} files removed)`));
+    } catch (err) {
+      errors.push({ pkg: pkg.name, err });
+      console.log(chalk.red(`  Failed to uninstall ${pkg.name}: ${err.message}`));
+    }
   }
 
-  console.log(chalk.green('\nDone.'));
+  if (errors.length > 0) {
+    console.error(chalk.red(`\n${errors.length} package(s) had errors.`));
+  } else {
+    console.log(chalk.green('\nDone.'));
+  }
 }
