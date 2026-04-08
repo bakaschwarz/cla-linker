@@ -10,9 +10,10 @@ import {
   readFile,
   rename,
   access,
+  rmdir,
 } from 'fs/promises';
 
-export { symlink, unlink, lstat, readlink, readdir, mkdir, writeFile, readFile, rename, access };
+export { symlink, unlink, lstat, readlink, readdir, mkdir, writeFile, readFile, rename, access, rmdir };
 
 /**
  * Walk a directory recursively and return relative paths of regular files only.

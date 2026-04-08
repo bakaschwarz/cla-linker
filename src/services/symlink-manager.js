@@ -1,5 +1,6 @@
 import path from 'path';
-import { walkFiles, symlink, unlink, lstat, readlink, mkdir, rename } from '../utils/fs.js';
+import chalk from 'chalk';
+import { walkFiles, symlink, unlink, lstat, readlink, mkdir, rename, rmdir, readdir } from '../utils/fs.js';
 import { readState, writeState } from './package-state.js';
 
 /**
@@ -13,9 +14,10 @@ import { readState, writeState } from './package-state.js';
  * @param {import('./package-registry.js').PackageDescriptor} pkg - Package to install
  * @param {string} projectPath - Absolute path to project root
  * @param {function(string): Promise<'skip'|'overwrite'>} conflictCallback - Called per conflict
+ * @param {{ dryRun?: boolean }} [options]
  * @returns {Promise<string[]>} Array of absolute symlink target paths that were created or already existed
  */
-export async function installPackage(pkg, projectPath, conflictCallback) {
+export async function installPackage(pkg, projectPath, conflictCallback, { dryRun = false } = {}) {
   const files = await walkFiles(pkg.filesPath);
   const ownedLinks = [];
 
@@ -24,7 +26,9 @@ export async function installPackage(pkg, projectPath, conflictCallback) {
     const target = path.resolve(projectPath, relPath);      // absolute — LINK-02
 
     // Create parent directories as needed — LINK-03
-    await mkdir(path.dirname(target), { recursive: true });
+    if (!dryRun) {
+      await mkdir(path.dirname(target), { recursive: true });
+    }
 
     const stat = await lstat(target).catch(() => null);
 
@@ -36,9 +40,16 @@ export async function installPackage(pkg, projectPath, conflictCallback) {
         continue;
       }
       // Symlink exists but points elsewhere — remove and recreate
-      await unlink(target);
+      if (!dryRun) {
+        await unlink(target);
+      }
     } else if (stat) {
       // Real file or directory exists at target — LINK-05: prompt per-conflict
+      if (dryRun) {
+        console.log(chalk.cyan('  [dry-run] would overwrite: ' + path.relative(projectPath, target)));
+        ownedLinks.push(target);
+        continue;
+      }
       const action = await conflictCallback(target);
       if (action === 'skip') continue;
       // Backup before overwrite — Pitfall 7 prevention
@@ -52,19 +63,25 @@ export async function installPackage(pkg, projectPath, conflictCallback) {
       }
     }
 
-    await symlink(source, target);
+    if (dryRun) {
+      console.log(chalk.cyan('  [dry-run] would create symlink: ' + path.relative(projectPath, target)));
+    } else {
+      await symlink(source, target);
+    }
     ownedLinks.push(target);
   }
 
-  // Update data.json with owned symlinks
-  // WR-04: merge with previously recorded links so stale paths (source file deleted)
-  // are retained and can be cleaned up by uninstallPackage rather than leaking.
-  const state = await readState(pkg.dataJsonPath);
-  const previousLinks = state.installedIn[projectPath] || [];
-  const currentSet = new Set(ownedLinks);
-  const merged = [...ownedLinks, ...previousLinks.filter(p => !currentSet.has(p))];
-  state.installedIn[projectPath] = merged;
-  await writeState(pkg.dataJsonPath, state);
+  if (!dryRun) {
+    // Update data.json with owned symlinks
+    // WR-04: merge with previously recorded links so stale paths (source file deleted)
+    // are retained and can be cleaned up by uninstallPackage rather than leaking.
+    const state = await readState(pkg.dataJsonPath);
+    const previousLinks = state.installedIn[projectPath] || [];
+    const currentSet = new Set(ownedLinks);
+    const merged = [...ownedLinks, ...previousLinks.filter(p => !currentSet.has(p))];
+    state.installedIn[projectPath] = merged;
+    await writeState(pkg.dataJsonPath, state);
+  }
 
   return ownedLinks;
 }
@@ -76,9 +93,10 @@ export async function installPackage(pkg, projectPath, conflictCallback) {
  *
  * @param {import('./package-registry.js').PackageDescriptor} pkg - Package to uninstall
  * @param {string} projectPath - Absolute path to project root
+ * @param {{ dryRun?: boolean }} [options]
  * @returns {Promise<string[]>} Array of absolute paths that were removed
  */
-export async function uninstallPackage(pkg, projectPath) {
+export async function uninstallPackage(pkg, projectPath, { dryRun = false } = {}) {
   const state = await readState(pkg.dataJsonPath);
   const ownedLinks = state.installedIn[projectPath] || [];
   const removed = [];
@@ -86,15 +104,50 @@ export async function uninstallPackage(pkg, projectPath) {
   for (const linkPath of ownedLinks) {
     const stat = await lstat(linkPath).catch(() => null);
     if (stat && stat.isSymbolicLink()) {
-      await unlink(linkPath);
+      if (dryRun) {
+        console.log(chalk.cyan('  [dry-run] would remove symlink: ' + path.relative(projectPath, linkPath)));
+      } else {
+        await unlink(linkPath);
+      }
       removed.push(linkPath);
     }
     // If not a symlink (manually deleted or replaced), skip silently
   }
 
-  // Remove project entry from data.json
-  delete state.installedIn[projectPath];
-  await writeState(pkg.dataJsonPath, state);
+  if (!dryRun) {
+    // Remove project entry from data.json
+    delete state.installedIn[projectPath];
+    await writeState(pkg.dataJsonPath, state);
+  }
 
   return removed;
+}
+
+/**
+ * Remove empty directories that were left behind after uninstalling symlinks.
+ * Traverses parent dirs of removed paths up to (but not including) projectPath,
+ * sorted deepest-first, removing only empty ones.
+ *
+ * @param {string[]} removedPaths - Absolute paths of removed symlinks
+ * @param {string} projectPath - Absolute path to project root (upper bound)
+ * @returns {Promise<void>}
+ */
+export async function cleanEmptyDirs(removedPaths, projectPath) {
+  const dirs = new Set();
+  for (const p of removedPaths) {
+    let dir = path.dirname(p);
+    while (dir !== projectPath && dir.startsWith(projectPath)) {
+      dirs.add(dir);
+      dir = path.dirname(dir);
+    }
+  }
+  const sorted = [...dirs].sort((a, b) => b.length - a.length);
+  for (const dir of sorted) {
+    try {
+      const entries = await readdir(dir);
+      if (entries.length === 0) await rmdir(dir);
+    } catch {
+      // ENOTEMPTY or already removed — skip
+    }
+  }
 }
