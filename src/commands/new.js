@@ -20,9 +20,11 @@ export async function newCommand(name) {
 
   const repoPath = await getRepoPath(); // Exits if not configured (CFG-02)
 
-  // Security: prevent path traversal — CR-01
-  if (name.includes('/') || name.includes('\\') || name.includes('..')) {
-    console.error(chalk.red(`Package name must not contain path separators or ".."`));
+  // Security: prevent path traversal — block separators and bare relative references,
+  // but allow names like "my..package" which are not actual traversal sequences.
+  const nameParts = name.split(/[/\\]/);
+  if (nameParts.length > 1 || nameParts[0] === '..' || nameParts[0] === '.') {
+    console.error(chalk.red(`Package name must not contain path separators or be a relative reference.`));
     process.exit(1);
   }
 
