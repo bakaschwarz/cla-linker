@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/bakaschwarz/cla-linker/compare/v1.0.0...v1.1.0) (2026-04-08)
+
+
+### Features
+
+* rename project to cla-linker and add logo ([d5865e9](https://github.com/bakaschwarz/cla-linker/commit/d5865e9443cc80cbbb3a13a8386bdf7ab15f0775))
+
 # 1.0.0 (2026-04-08)
 
 
