@@ -1,7 +1,7 @@
 import path from 'path';
 import os from 'os';
 import chalk from 'chalk';
-import { readFile, writeFile, rename, access } from './utils/fs.js';
+import { readFile, writeFile, rename, lstat } from './utils/fs.js';
 
 export const CONFIG_PATH = path.join(os.homedir(), '.clawd-linker');
 
@@ -27,8 +27,12 @@ export async function getRepoPath() {
     process.exit(1);
   }
 
+  // WR-03: access() succeeds on regular files too — use lstat + isDirectory()
   try {
-    await access(raw.repoPath);
+    const st = await lstat(raw.repoPath);
+    if (!st.isDirectory()) {
+      throw new Error('not a directory');
+    }
   } catch {
     console.error(chalk.red(`Package repo not found at ${raw.repoPath}. Run \`clawd-linker init\` to reconfigure.`));
     process.exit(1);

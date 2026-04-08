@@ -1,5 +1,5 @@
 import path from 'path';
-import { readdir, access } from '../utils/fs.js';
+import { readdir, lstat } from '../utils/fs.js';
 
 /**
  * @typedef {Object} PackageDescriptor
@@ -26,8 +26,10 @@ export async function listPackages(repoPath) {
     const pkgPath = path.join(repoPath, entry.name);
     const filesPath = path.join(pkgPath, 'files');
 
+    // WR-03: access() succeeds on regular files too — use lstat + isDirectory()
     try {
-      await access(filesPath);
+      const st = await lstat(filesPath);
+      if (!st.isDirectory()) continue; // exists but is not a directory — skip
     } catch {
       continue; // No files/ subdirectory — skip silently
     }
