@@ -1,164 +1,91 @@
-<!-- GSD:project-start source:PROJECT.md -->
-## Project
+## Project: clawd-linker
 
-**clawd-linker**
+CLI tool (Node.js ESM, no build step) that symlinks reusable file packages from a central git repo into projects.
 
-A Node.js CLI tool that manages reusable file packages across multiple projects via symlinks. Packages live in a central git repository; `clawd-linker` lets you select which packages to install in a project and handles creating and removing the symlinks automatically.
+**Tech**: Node.js >= 20.12.0, commander, @inquirer/prompts, chalk, conf, simple-git, vitest
 
-**Core Value:** A developer can run `npx clawd-linker manage` in any project and instantly sync the right set of shared files — no manual copying, no drift.
+**Commands**: `init` · `new <name>` · `manage` · `list`
 
-### Constraints
+**Key files**:
+- `bin/clawd-linker.js` — CLI entrypoint (commander setup)
+- `src/commands/` — one file per command
+- `src/services/symlink-manager.js` — install/uninstall symlink logic
+- `src/services/package-state.js` — data.json state + reconcileLinks
+- `src/services/package-registry.js` — listPackages (scans central repo)
+- `src/config.js` — read/write `~/.clawd-linker` (global config)
 
-- **Runtime**: Node.js — must work via `npx` without a global install
-- **Platform**: macOS-first (symlinks assumed available)
-- **Scope**: Personal tool — no auth, no server, no multi-user scenarios
-<!-- GSD:project-end -->
+**State storage**: `<package>/data.json` inside the central repo (git-ignored), tracking installed projects + linked paths
 
-<!-- GSD:stack-start source:research/STACK.md -->
-## Technology Stack
+**Run / test**:
+- Dev: `node bin/clawd-linker.js <command>`
+- Test: `npm test` (vitest)
 
-## Recommended Stack
-### Runtime and Module Format
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Module format | **ESM** (`"type": "module"`) | All shortlisted libraries are ESM-only in their current major versions (`@inquirer/prompts`, `conf`, `execa`, `chalk`, `ora`). Choosing CJS forces downgrading every dependency to an older major — not worth it. |
-| Node.js minimum | **>=20.12.0** | Required by `@inquirer/prompts` (most restrictive). Node 20 is Active LTS through April 2026; Node 22 is the new LTS. `npx` will use whatever Node the user has installed — document this requirement in README. |
-| Language | **Plain ESM JavaScript** (no TypeScript compile step) | This is a personal tool; adding a build step (`tsup`, `tsc`) just to run `npx clawd-linker` means either shipping a `dist/` or requiring callers to have `tsx` on PATH. Plain ESM avoids that entirely. Use JSDoc `@param` types for IDE autocompletion if desired. |
-### CLI Framework
-| Library | Version | Weekly Downloads | Purpose |
-|---------|---------|-----------------|---------|
-| **commander** | 14.0.3 | 316 M | Argument parsing, subcommand routing, `--help` generation |
-- **yargs** — more configuration surface than needed for 3 subcommands; commander is simpler
-- **oclif** — designed for large CLI suites with plugins; heavy overkill for a personal tool
-- **meow** (Sindre Sorhus) — ESM-only, minimal, but lacks subcommand routing without extra wiring
-### Interactive TUI / Prompts
-| Library | Version | Weekly Downloads | Purpose |
-|---------|---------|-----------------|---------|
-| **@inquirer/prompts** | 8.4.1 | 19.3 M | All interactive prompts: checkbox list, confirm, input |
-| **@inquirer/checkbox** | 5.1.3 | (sub-package) | The checkbox prompt specifically |
-- Arrow-key navigation
-- Space to toggle, Enter to confirm
-- Pre-checked items (via `checked: true` on choices)
-- Page scrolling for long lists
-| Library | Version | Downloads | Why not |
-|---------|---------|-----------|---------|
-| `@clack/prompts` | 1.2.0 | 8.2 M | Beautiful output but lacks a checkbox/multi-select prompt as of this research — only single-select (`select`) is built-in. |
-| legacy `inquirer` | 13.4.1 | 41.5 M | The `latest` tag is the new rewrite that maps to `@inquirer/prompts`; the old API is on the `legacy` dist-tag. Use the scoped packages directly to avoid confusion. |
-| `ink` | 7.0.0 | — | React-for-terminal. Powerful but adds React as a runtime dependency. Overkill when `@inquirer/prompts` covers all needed interactions. |
-### Config File (Global `~/.clawd-linker`)
-| Library | Version | Weekly Downloads | Purpose |
-|---------|---------|-----------------|---------|
-| **conf** | 15.1.0 | 3.3 M | Read/write JSON config at `~/.clawd-linker` with atomic writes and schema validation |
-### Git Integration
-| Library | Version | Weekly Downloads | Purpose |
-|---------|---------|-----------------|---------|
-| **simple-git** | 3.35.2 | 10 M | `git init` on new repo, `.gitignore` management |
-### Process Execution (for shelling out)
-| Library | Version | Weekly Downloads | Purpose |
-|---------|---------|-----------------|---------|
-| **execa** | 9.6.1 | 114 M | Run subprocesses if needed beyond simple-git |
-### Filesystem Operations
-| Operation | API |
-|-----------|-----|
-| Create symlink | `fs.symlink(target, path)` |
-| Remove symlink | `fs.unlink(path)` |
-| Read symlink target | `fs.readlink(path)` |
-| Check if symlink | `fs.lstat(path)` → check `stats.isSymbolicLink()` |
-| Read/write JSON | `fs.readFile` + `JSON.parse` / `JSON.stringify` + `fs.writeFile` |
-| Walk directory | `fs.readdir(path, { withFileTypes: true, recursive: true })` (Node 18.17+) |
-| Create directory | `fs.mkdir(path, { recursive: true })` |
-### Terminal Output Styling
-| Library | Version | Weekly Downloads | Purpose |
-|---------|---------|-----------------|---------|
-| **chalk** | 5.6.2 | 374 M | Colored terminal output (errors red, success green) |
-### Testing
-| Library | Version | Weekly Downloads | Purpose |
-|---------|---------|-----------------|---------|
-| **vitest** | 4.1.3 | 39.8 M | Unit and integration tests |
-## Full Dependency List
-### Runtime dependencies
-| Package | Version Pin | Rationale |
-|---------|-------------|-----------|
-| `commander` | `^14.0.3` | CLI routing |
-| `@inquirer/prompts` | `^8.4.1` | Interactive checkbox + confirm prompts |
-| `conf` | `^15.1.0` | Global config at `~/.clawd-linker` |
-| `simple-git` | `^3.35.2` | `git init` for new package repos |
-| `chalk` | `^5.6.2` | Terminal output color |
-### Dev dependencies
-| Package | Version Pin | Rationale |
-|---------|-------------|-----------|
-| `vitest` | `^4.1.3` | Test runner with native ESM support |
-### Intentionally omitted
-| Package | Reason |
-|---------|--------|
-| `execa` | Not needed; simple-git covers git; fs built-ins cover the rest |
-| `ora` | No long-running async operations in v1 |
-| `@types/node` | Project is plain JS, not TypeScript |
-| `tsup` / `tsx` | No build step; plain ESM runs directly via `node` |
-| `zod` | Config schema is trivial (single field); not worth the dependency |
-| `fs-extra` | Node >= 20 built-ins are sufficient |
-| `glob` | `fs.readdir` with `recursive: true` is sufficient |
-| `ink` | React-in-terminal is overkill for a 3-command tool |
-| `@clack/prompts` | No multi-select prompt; missing key feature |
-## package.json Structure
-## Alternatives Considered (Summary)
-| Category | Recommended | Alternative | Why Not |
-|----------|-------------|-------------|---------|
-| CLI framework | `commander` | `yargs` | More config overhead for 3 subcommands |
-| CLI framework | `commander` | `oclif` | Plugin framework overkill for personal tool |
-| Interactive prompts | `@inquirer/prompts` | `@clack/prompts` | Clack lacks multi-select / checkbox prompt |
-| Interactive prompts | `@inquirer/prompts` | `ink` | React runtime dependency; overkill |
-| Config | `conf` | plain `fs` + JSON | Both valid; `conf` adds atomic writes |
-| Git | `simple-git` | `isomorphic-git` | isomorphic-git is for no-git-binary envs (browsers/CI) |
-| Git | `simple-git` | shell `execa('git', [...])` | simple-git gives structured errors; reasonable swap if surface stays minimal |
-| Filesystem | `fs/promises` (built-in) | `fs-extra` | Node 20 covers everything needed |
-| Testing | `vitest` | `jest` | Jest requires ESM transform config; vitest is zero-config for ESM |
-| Language | Plain ESM JS | TypeScript | No build step = simpler npx distribution |
-## Sources
-- npm registry version data: verified via `npm view <package> version` (2026-04-08)
-- Download counts: npmjs.com downloads API (`/downloads/point/last-week/<pkg>`), week of 2026-04-01
-- Engine requirements: verified via `npm view <package> engines` (2026-04-08)
-- Node.js `fs/promises` API coverage: verified by running `typeof fs.symlink` etc. against Node 24.14.0
-- `@inquirer/prompts` checkbox feature set: package description and keywords from npm registry
-- `conf` ESM-only status: verified via `npm view conf type` → `"module"` (2026-04-08)
-<!-- GSD:stack-end -->
+**Conventions**:
+- File naming: kebab-case
+- ESM throughout (`import`/`export`)
+- Commit style: `type(scope): message` (scope = milestone number, e.g. `feat(02-02):`)
+- Error handling: async/await + try/catch; `process.exit(1)` on fatal
 
-<!-- GSD:conventions-start source:CONVENTIONS.md -->
-## Conventions
+---
 
-Conventions not yet established. Will populate as patterns emerge during development.
-<!-- GSD:conventions-end -->
+## Code Exploration Policy
 
-<!-- GSD:architecture-start source:ARCHITECTURE.md -->
-## Architecture
+Always use jCodemunch-MCP tools for code navigation. Never fall back to Read, Grep, Glob, or Bash for code exploration.
+**Exception:** Use `Read` when you need to edit a file — the agent harness requires a `Read` before `Edit`/`Write` will succeed. Use jCodemunch tools to *find and understand* code, then `Read` only the specific file you're about to modify.
 
-Architecture not yet mapped. Follow existing patterns found in the codebase.
-<!-- GSD:architecture-end -->
+**Start any session:**
+1. `resolve_repo { "path": "." }` — confirm the project is indexed. If not: `index_folder { "path": "." }`
+2. `suggest_queries` — when the repo is unfamiliar
 
-<!-- GSD:skills-start source:skills/ -->
-## Project Skills
+**Finding code:**
+- symbol by name → `search_symbols` (add `kind=`, `language=`, `file_pattern=`, `decorator=` to narrow)
+- decorator-aware queries → `search_symbols(decorator="X")` to find symbols with a specific decorator (e.g. `@property`, `@route`); combine with set-difference to find symbols *lacking* a decorator (e.g. "which endpoints lack CSRF protection?")
+- string, comment, config value → `search_text` (supports regex, `context_lines`)
+- database columns (dbt/SQLMesh) → `search_columns`
 
-No project skills found. Add skills to any of: `.claude/skills/`, `.agents/skills/`, `.cursor/skills/`, or `.github/skills/` with a `SKILL.md` index file.
-<!-- GSD:skills-end -->
+**Reading code:**
+- before opening any file → `get_file_outline` first
+- one or more symbols → `get_symbol_source` (single ID → flat object; array → batch)
+- symbol + its imports → `get_context_bundle`
+- specific line range only → `get_file_content` (last resort)
 
-<!-- GSD:workflow-start source:GSD defaults -->
-## GSD Workflow Enforcement
+**Repo structure:**
+- `get_repo_outline` → dirs, languages, symbol counts
+- `get_file_tree` → file layout, filter with `path_prefix`
 
-Before using Edit, Write, or other file-changing tools, start work through a GSD command so planning artifacts and execution context stay in sync.
+**Relationships & impact:**
+- what imports this file → `find_importers`
+- where is this name used → `find_references`
+- is this identifier used anywhere → `check_references`
+- file dependency graph → `get_dependency_graph`
+- what breaks if I change X → `get_blast_radius`
+- what symbols actually changed since last commit → `get_changed_symbols`
+- find unreachable/dead code → `find_dead_code`
+- class hierarchy → `get_class_hierarchy`
 
-Use these entry points:
-- `/gsd-quick` for small fixes, doc updates, and ad-hoc tasks
-- `/gsd-debug` for investigation and bug fixing
-- `/gsd-execute-phase` for planned phase work
+## Session-Aware Routing
 
-Do not make direct repo edits outside a GSD workflow unless the user explicitly asks to bypass it.
-<!-- GSD:workflow-end -->
+**Opening move for any task:**
+1. `plan_turn { "repo": "...", "query": "your task description" }` — get confidence + recommended files
+2. Obey the confidence level:
+   - `high` → go directly to recommended symbols, max 2 supplementary reads
+   - `medium` → explore recommended files, max 5 supplementary reads
+   - `low` → the feature likely doesn't exist. Report the gap to the user. Do NOT search further hoping to find it.
 
+**Interpreting search results:**
+- If `search_symbols` returns `negative_evidence` with `verdict: "no_implementation_found"`:
+  - Do NOT re-search with different terms hoping to find it
+  - Do NOT assume a related file (e.g. auth middleware) implements the missing feature (e.g. CSRF)
+  - DO report: "No existing implementation found for X. This would need to be created."
+  - DO check `related_existing` files — they show what's nearby, not what exists
+- If `verdict: "low_confidence_matches"`: examine the matches critically before assuming they implement the feature
 
+**After editing files:**
+- If PostToolUse hooks are installed (Claude Code only), edited files are auto-reindexed
+- Otherwise, call `register_edit` with edited file paths to invalidate caches and keep the index fresh
+- For bulk edits (5+ files), always use `register_edit` with all paths to batch-invalidate
 
-<!-- GSD:profile-start -->
-## Developer Profile
-
-> Profile not yet configured. Run `/gsd-profile-user` to generate your developer profile.
-> This section is managed by `generate-claude-profile` -- do not edit manually.
-<!-- GSD:profile-end -->
+**Token efficiency:**
+- If `_meta` contains `budget_warning`: stop exploring and work with what you have
+- If `auto_compacted: true` appears: results were automatically compressed due to turn budget
+- Use `get_session_context` to check what you've already read — avoid re-reading the same files
