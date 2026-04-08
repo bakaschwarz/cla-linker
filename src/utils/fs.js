@@ -1,0 +1,30 @@
+import path from 'path';
+import {
+  symlink,
+  unlink,
+  lstat,
+  readlink,
+  readdir,
+  mkdir,
+  writeFile,
+  readFile,
+  rename,
+  access,
+} from 'fs/promises';
+
+export { symlink, unlink, lstat, readlink, readdir, mkdir, writeFile, readFile, rename, access };
+
+/**
+ * Walk a directory recursively and return relative paths of regular files only.
+ * Uses lstat semantics — does NOT follow symlinks (Pitfall 7 prevention).
+ * @param {string} dirPath - Absolute path to directory to walk
+ * @returns {Promise<string[]>} Relative paths of regular files
+ */
+export async function walkFiles(dirPath) {
+  const entries = await readdir(dirPath, { withFileTypes: true, recursive: true });
+  return entries
+    .filter(e => !e.isDirectory() && !e.isSymbolicLink())
+    .map(e => path.relative(dirPath, path.join(e.path, e.name)));
+  // e.path is the containing directory (Dirent property, Node 20+)
+  // Using e.path (not e.parentPath) for Node 20.12.0 compatibility
+}
