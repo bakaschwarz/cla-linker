@@ -141,3 +141,7 @@ vite.config.ts.timestamp-*
 # Dolt database files (added by bd init)
 .dolt/
 *.db
+# cla-linker managed — do not edit this block
+.claude/rules/beads.md
+.claude/rules/git.md
+# end cla-linker managed
