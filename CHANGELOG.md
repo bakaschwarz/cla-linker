@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/bakaschwarz/cla-linker/compare/v1.1.0...v1.2.0) (2026-04-09)
+
+
+### Features
+
+* **manage:** implement package load order and priority management ([6b27378](https://github.com/bakaschwarz/cla-linker/commit/6b2737882bdb788a43b0e813ed024c2a2d4b0a1c))
+
 # [1.1.0](https://github.com/bakaschwarz/cla-linker/compare/v1.0.0...v1.1.0) (2026-04-08)
 
 
