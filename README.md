@@ -66,6 +66,36 @@ Opens a checkbox list of all packages. Toggle with Space, confirm with Enter. Al
 
 **Markdown merging:** `.md` files are not symlinked — instead, their content is merged from all selected packages into a single real file in your project. Package content appears above a `<!-- ===== USER CONTENT - SAFE TO EDIT BELOW ===== -->` marker; anything you write below that line is preserved across reinstalls. When multiple packages contribute to the same `.md` file, they're concatenated in package-list order (top package first). When you deselect all packages that contributed to a merged file: if you've added content below the marker it's kept as a plain file; if the section is empty the file is deleted.
 
+### `sync` (alias: `s`)
+
+Re-sync installed packages with the latest content from the central repo. Prunes stale symlinks and creates new ones for any files added to a package since it was installed.
+
+```bash
+npx cla-linker sync
+```
+
+**Options:**
+- `-g, --global` — sync all registered projects, not just the current directory
+- `--watch` — watch the central repo for changes and re-sync automatically (Ctrl+C to stop)
+
+### `ignore` (alias: `ig`)
+
+Add all files from installed packages to `.gitignore`. Useful when setting up a project — since package files are symlinks, you typically don't want to commit them.
+
+```bash
+npx cla-linker ignore
+```
+
+Appends missing paths under a managed comment block:
+
+```
+# cla-linker managed — do not edit this block
+...
+# end cla-linker managed
+```
+
+The command is idempotent — running it again skips entries already present. To version a specific file, remove its line from the block after running this command.
+
 ## Config
 
 Global config is stored at `~/.cla-linker`. Delete this file to reconfigure.
