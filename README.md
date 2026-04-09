@@ -60,6 +60,8 @@ npx cla-linker manage
 
 Opens a checkbox list of all packages. Toggle with Space, confirm with Enter. Already-installed packages are pre-checked. After selection, shows a diff (install/uninstall) and asks for confirmation before applying.
 
+**Load order:** when 2 or more packages are selected, a reorder prompt appears. Use ↑↓ to navigate, `1` to move an item up, `2` to move it down, Enter to confirm. Packages at the top of the list are applied last and take precedence when files conflict. The order is saved and restored on future runs.
+
 **Conflict handling:** if a file already exists at a symlink target, you're prompted per-file whether to overwrite (original is backed up with a timestamp suffix) or skip.
 
 ## Config
