@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/bakaschwarz/cla-linker/compare/v1.3.0...v1.4.0) (2026-04-09)
+
+
+### Features
+
+* **sync:** add sync command to update installed packages ([7cee96c](https://github.com/bakaschwarz/cla-linker/commit/7cee96c5460f3e28dc7cf1beaa95b12062099eae))
+
 # [1.3.0](https://github.com/bakaschwarz/cla-linker/compare/v1.2.0...v1.3.0) (2026-04-09)
 
 
