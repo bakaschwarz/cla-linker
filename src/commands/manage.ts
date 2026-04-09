@@ -118,7 +118,7 @@ export async function manageCommand(options: ManageOptions): Promise<void> {
   const conflictCallback: ConflictCallback = async (targetPath) => {
     const relPath = path.relative(projectPath, targetPath);
     const overwrite = await inquirerConfirm({
-      message: `File already exists: ${relPath}. Overwrite? (original backed up to .clawd-backup)`,
+      message: `File already exists: ${relPath}. Overwrite? (original backed up to .cla-backup)`,
       default: false,
     });
     return overwrite ? 'overwrite' : 'skip';

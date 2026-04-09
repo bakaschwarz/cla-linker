@@ -47,10 +47,10 @@ export async function installPackage(
       if (action === 'skip') continue;
       // Backup before overwrite — Pitfall 7 prevention
       // WR-01: avoid clobbering an existing backup with a timestamped name
-      const backupPath = target + '.clawd-backup';
+      const backupPath = target + '.cla-backup';
       const backupStat = await lstat(backupPath).catch(() => null);
       if (backupStat) {
-        await rename(target, `${target}.clawd-backup-${Date.now()}`);
+        await rename(target, `${target}.cla-backup-${Date.now()}`);
       } else {
         await rename(target, backupPath);
       }

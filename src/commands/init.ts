@@ -28,7 +28,7 @@ export async function initCommand(): Promise<void> {
   // INIT-01: Ask for repo path
   const repoPath = await input({
     message: 'Where should the package repository be created?',
-    default: path.join(process.env['HOME'] ?? process.env['USERPROFILE'] ?? '', 'clawd-packages'),
+    default: path.join(process.env['HOME'] ?? process.env['USERPROFILE'] ?? '', 'cla-packages'),
   });
 
   const resolved = path.resolve(repoPath);

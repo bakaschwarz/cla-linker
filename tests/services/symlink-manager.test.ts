@@ -101,7 +101,7 @@ describe('installPackage', () => {
     const stat = await lstat(target);
     expect(stat.isSymbolicLink()).toBe(true);
 
-    const backup = await lstat(target + '.clawd-backup');
+    const backup = await lstat(target + '.cla-backup');
     expect(backup.isFile()).toBe(true);
   });
 
