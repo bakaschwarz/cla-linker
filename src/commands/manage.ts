@@ -3,9 +3,10 @@ import chalk from 'chalk';
 import { checkbox, confirm as inquirerConfirm } from '@inquirer/prompts';
 import { getRepoPath } from '../config.js';
 import { listPackages } from '../services/package-registry.js';
-import { getInstalledPackages, reconcileLinks } from '../services/package-state.js';
+import { getInstalledPackages, getOrderedInstalledPackages, setPackageOrder, reconcileLinks } from '../services/package-state.js';
 import { installPackage, uninstallPackage, cleanEmptyDirs } from '../services/symlink-manager.js';
-import type { ManageOptions, ConflictCallback } from '../types.js';
+import { reorderPrompt } from '../prompts/reorder.js';
+import type { ManageOptions, ConflictCallback, Package } from '../types.js';
 
 export async function manageCommand(options: ManageOptions): Promise<void> {
   const dryRun = options.dryRun ?? false;
@@ -35,8 +36,9 @@ export async function manageCommand(options: ManageOptions): Promise<void> {
     console.log(chalk.cyan('\n[dry-run] Previewing changes — no files will be modified.\n'));
   }
 
-  // MGR-02: Determine which packages are currently installed
+  // MGR-02: Determine which packages are currently installed (ordered)
   const installed = await getInstalledPackages(projectPath, packages);
+  const installedOrdered = await getOrderedInstalledPackages(projectPath, packages);
 
   // UX-02: Headless mode guard — exit before any interactive prompt
   if (isHeadless) {
@@ -62,7 +64,33 @@ export async function manageCommand(options: ManageOptions): Promise<void> {
   const toInstall = packages.filter(pkg => selectedSet.has(pkg.name) && !installed.has(pkg.name));
   const toUninstall = packages.filter(pkg => !selectedSet.has(pkg.name) && installed.has(pkg.name));
 
-  if (toInstall.length === 0 && toUninstall.length === 0) {
+  // ORD-01: Build initial ordered list for selected packages.
+  // Already-installed packages retain their saved order; newly selected appended at the top.
+  const selectedPackages = packages.filter(pkg => selectedSet.has(pkg.name));
+  const installedOrderedNames = installedOrdered.map(p => p.name);
+  const newlySelected = selectedPackages.filter(p => !installed.has(p.name));
+  const orderedNames: string[] = [
+    ...installedOrderedNames.filter(n => selectedSet.has(n)),
+    ...newlySelected.map(p => p.name),
+  ];
+
+  // ORD-02: Show reorder prompt when 2+ packages are selected
+  let finalOrderedNames = orderedNames;
+  if (selectedPackages.length >= 2) {
+    finalOrderedNames = await reorderPrompt({
+      message: 'Package load order (top = applied last = wins conflicts)',
+      items: orderedNames,
+    });
+  }
+
+  const finalOrderedPkgs: Package[] = finalOrderedNames
+    .map(name => packages.find(p => p.name === name)!)
+    .filter(Boolean);
+
+  const orderChanged = finalOrderedNames.join(',') !== installedOrderedNames.filter(n => selectedSet.has(n)).join(',');
+  const hasChanges = toInstall.length > 0 || toUninstall.length > 0 || orderChanged;
+
+  if (!hasChanges) {
     console.log(chalk.green('No changes needed.'));
     return;
   }
@@ -73,6 +101,9 @@ export async function manageCommand(options: ManageOptions): Promise<void> {
   }
   if (toUninstall.length > 0) {
     console.log(chalk.red(`Will uninstall: ${toUninstall.map(p => p.name).join(', ')}`));
+  }
+  if (orderChanged) {
+    console.log(chalk.cyan(`Load order: ${finalOrderedNames.join(' → ')}`));
   }
 
   if (!dryRun) {
@@ -93,19 +124,8 @@ export async function manageCommand(options: ManageOptions): Promise<void> {
     return overwrite ? 'overwrite' : 'skip';
   };
 
-  // Execute installs — WR-02: accumulate errors rather than letting them propagate
+  // Execute uninstalls first
   const errors: Array<{ pkg: string; err: Error }> = [];
-  for (const pkg of toInstall) {
-    try {
-      const links = await installPackage(pkg, projectPath, conflictCallback, { dryRun });
-      console.log(chalk.green(`  Installed ${pkg.name} (${links.length} files)`));
-    } catch (err) {
-      errors.push({ pkg: pkg.name, err: err as Error });
-      console.log(chalk.red(`  Failed to install ${pkg.name}: ${(err as Error).message}`));
-    }
-  }
-
-  // Execute uninstalls
   const allRemoved: string[] = [];
   for (const pkg of toUninstall) {
     try {
@@ -121,6 +141,24 @@ export async function manageCommand(options: ManageOptions): Promise<void> {
   // ROB-02: Clean empty directories after all uninstalls
   if (!dryRun && allRemoved.length > 0) {
     await cleanEmptyDirs(allRemoved, projectPath);
+  }
+
+  // ORD-03: Install ALL selected packages in order (bottom→top) so conflict resolution
+  // reflects the final priority stack. installPackage is idempotent for correct symlinks.
+  for (let i = 0; i < finalOrderedPkgs.length; i++) {
+    const pkg = finalOrderedPkgs[i];
+    try {
+      const links = await installPackage(pkg, projectPath, conflictCallback, { dryRun });
+      if (toInstall.some(p => p.name === pkg.name)) {
+        console.log(chalk.green(`  Installed ${pkg.name} (${links.length} files)`));
+      }
+      if (!dryRun) {
+        await setPackageOrder(pkg, projectPath, i);
+      }
+    } catch (err) {
+      errors.push({ pkg: pkg.name, err: err as Error });
+      console.log(chalk.red(`  Failed to install ${pkg.name}: ${(err as Error).message}`));
+    }
   }
 
   if (errors.length > 0) {

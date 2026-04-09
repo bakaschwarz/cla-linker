@@ -28,6 +28,26 @@ async function writeState(dataJsonPath: string, state: PackageState): Promise<vo
   await rename(tmp, dataJsonPath);
 }
 
+export async function getOrderedInstalledPackages(projectPath: string, packages: Package[]): Promise<Package[]> {
+  const withOrder: Array<{ pkg: Package; order: number }> = [];
+  for (const pkg of packages) {
+    const state = await readState(pkg.dataJsonPath);
+    const projectLinks = state.installedIn[projectPath];
+    if (projectLinks && projectLinks.length > 0) {
+      withOrder.push({ pkg, order: state.orderIn?.[projectPath] ?? Infinity });
+    }
+  }
+  withOrder.sort((a, b) => a.order - b.order);
+  return withOrder.map(({ pkg }) => pkg);
+}
+
+export async function setPackageOrder(pkg: Package, projectPath: string, position: number): Promise<void> {
+  const state = await readState(pkg.dataJsonPath);
+  state.orderIn = state.orderIn ?? {};
+  state.orderIn[projectPath] = position;
+  await writeState(pkg.dataJsonPath, state);
+}
+
 export async function getInstalledPackages(projectPath: string, packages: Package[]): Promise<Set<string>> {
   const installed = new Set<string>();
   for (const pkg of packages) {

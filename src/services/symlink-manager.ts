@@ -104,6 +104,9 @@ export async function uninstallPackage(
   if (!dryRun) {
     // Remove project entry from data.json
     delete state.installedIn[projectPath];
+    if (state.orderIn) {
+      delete state.orderIn[projectPath];
+    }
     await writeState(pkg.dataJsonPath, state);
   }
 

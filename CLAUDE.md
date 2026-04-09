@@ -1,4 +1,4 @@
-## Project: clawd-linker
+## Project: cla-linker
 
 CLI tool (Node.js ESM, no build step) that symlinks reusable file packages from a central git repo into projects.
 
@@ -7,17 +7,17 @@ CLI tool (Node.js ESM, no build step) that symlinks reusable file packages from 
 **Commands**: `init` · `new <name>` · `manage` · `list`
 
 **Key files**:
-- `bin/clawd-linker.js` — CLI entrypoint (commander setup)
+- `bin/cla-linker.js` — CLI entrypoint (commander setup)
 - `src/commands/` — one file per command
 - `src/services/symlink-manager.js` — install/uninstall symlink logic
 - `src/services/package-state.js` — data.json state + reconcileLinks
 - `src/services/package-registry.js` — listPackages (scans central repo)
-- `src/config.js` — read/write `~/.clawd-linker` (global config)
+- `src/config.js` — read/write `~/.cla-linker` (global config)
 
 **State storage**: `<package>/data.json` inside the central repo (git-ignored), tracking installed projects + linked paths
 
 **Run / test**:
-- Dev: `node bin/clawd-linker.js <command>`
+- Dev: `node bin/cla-linker.js <command>`
 - Test: `npm test` (vitest)
 
 **Conventions**:
